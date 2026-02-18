@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request
 from dotenv import load_dotenv
+from datetime import datetime
 import requests
 import os
 
@@ -12,28 +13,31 @@ WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
 def get_weather(city, country="uk"):
     try:
         url = f"http://api.openweathermap.org/data/2.5/forecast?q={city},{country}&appid={WEATHER_API_KEY}&units=metric&cnt=56"
-        response = requests.get(url)
+        response = requests.get(url, timeout=5)
         data = response.json()
 
-        if data.get("cod") != "200":
+        if str(data.get("cod")) != "200":
             return None
 
         day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
         daily = {}
         for item in data["list"]:
-            date = item["dt_txt"].split(" ")[0]
-            if date not in daily:
-                from datetime import datetime
+            try:
+                date = item["dt_txt"].split(" ")[0]
                 day_name = day_names[datetime.strptime(date, "%Y-%m-%d").weekday()]
-                daily[day_name] = {
-                    "temp": round(item["main"]["temp"]),
-                    "description": item["weather"][0]["description"].title(),
-                    "icon": item["weather"][0]["icon"],
-                    "rain": round(item.get("pop", 0) * 100)
-                }
+                if day_name not in daily:
+                    daily[day_name] = {
+                        "temp": round(item["main"]["temp"]),
+                        "description": item["weather"][0]["description"].title(),
+                        "icon": item["weather"][0]["icon"],
+                        "rain": round(item.get("pop", 0) * 100)
+                    }
+            except:
+                continue
 
-        return daily
-    except:
+        return daily if daily else None
+    except Exception as e:
+        print(f"Weather error: {e}")
         return None
 
 def create_plan(total_km, rest_days):
@@ -45,6 +49,11 @@ def create_plan(total_km, rest_days):
 
     has_wednesday = "Wed" in days
     wed_km = 8.0 if total_km >= 25 else None
+
+    if has_wednesday and not wed_km:
+        days.remove("Wed")
+        has_wednesday = False
+
     long_run = round(min(20, max(15, total_km * 0.35)), 1)
 
     min_possible = ((wed_km or 1) if has_wednesday else 1) + (long_run if len(days) > 1 else 0) + (1 * max(0, len(days) - 2))
@@ -58,9 +67,6 @@ def create_plan(total_km, rest_days):
             if preferred in days and preferred != "Wed":
                 long_run_day = preferred
                 break
-    if has_wednesday and not wed_km:
-        days.remove("Wed")
-        has_wednesday = False
 
     fixed_km = ((wed_km or 0) if has_wednesday else 0) + long_run
     remaining_km = total_km - fixed_km
@@ -95,6 +101,7 @@ def index():
     end_km = None
     weather = None
     city = None
+    country = "uk"
 
     if request.method == "POST":
         start_km = float(request.form["start_km"])
@@ -118,7 +125,7 @@ def index():
                 break
             weeks.append({"week": i + 1, "total_km": km, "runs": plan})
 
-    return render_template("index.html", weeks=weeks, error=error, start_km=start_km, end_km=end_km, weather=weather, city=city, country=request.form.get("country", "uk") if request.method == "POST" else "uk")
+    return render_template("index.html", weeks=weeks, error=error, start_km=start_km, end_km=end_km, weather=weather, city=city, country=country)
 
 if __name__ == "__main__":
     app.run(debug=True)
