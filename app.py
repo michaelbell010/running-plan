@@ -18,11 +18,14 @@ def get_weather(city):
         if data.get("cod") != "200":
             return None
 
+        day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
         daily = {}
         for item in data["list"]:
             date = item["dt_txt"].split(" ")[0]
             if date not in daily:
-                daily[date] = {
+                from datetime import datetime
+                day_name = day_names[datetime.strptime(date, "%Y-%m-%d").weekday()]
+                daily[day_name] = {
                     "temp": round(item["main"]["temp"]),
                     "description": item["weather"][0]["description"].title(),
                     "icon": item["weather"][0]["icon"],

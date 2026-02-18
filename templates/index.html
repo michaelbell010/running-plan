@@ -24,7 +24,7 @@
         .new-plan-btn:hover { background: #333; }
         .km-inputs { display: flex; gap: 20px; }
         .km-inputs div { flex: 1; }
-        .weather-badge { font-size: 12px; color: #888; margin-left: 10px; }
+        .weather-badge { font-size: 12px; color: #888; margin-left: 10px; display: flex; align-items: center; gap: 4px; }
         .weather-badge img { width: 20px; vertical-align: middle; }
         .rain { color: #4a90d9; }
 
@@ -85,16 +85,11 @@
             <div class="run-row {% if run.km >= 15 %}long-run{% elif run.day == 'Wed' %}wed-run{% endif %}">
                 <span>{{ run.day }}</span>
                 <span>{{ run.km }}km</span>
-                {% if week.week == 1 and weather %}
-                    {% set day_map = {"Mon": 0, "Tue": 1, "Wed": 2, "Thu": 3, "Fri": 4, "Sat": 5, "Sun": 6} %}
-                    {% for date, w in weather.items() %}
-                        {% if loop.index0 == day_map[run.day] %}
-                        <span class="weather-badge">
-                            <img src="http://openweathermap.org/img/wn/{{ w.icon }}.png">
-                            {{ w.temp }}°C · {{ w.description }} · <span class="rain">{{ w.rain }}% rain</span>
-                        </span>
-                        {% endif %}
-                    {% endfor %}
+                {% if week.week == 1 and weather and run.day in weather %}
+                <span class="weather-badge">
+                    <img src="http://openweathermap.org/img/wn/{{ weather[run.day].icon }}.png">
+                    {{ weather[run.day].temp }}°C · {{ weather[run.day].description }} · <span class="rain">{{ weather[run.day].rain }}% rain</span>
+                </span>
                 {% endif %}
             </div>
             {% endfor %}
