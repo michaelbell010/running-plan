@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <title>Running Plan Calculator</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 700px; margin: 60px auto; background: #f5f5f5; padding: 0 20px; }
+        body { font-family: Arial, sans-serif; max-width: 750px; margin: 60px auto; background: #f5f5f5; padding: 0 20px; }
         h1 { color: #e05c00; }
-        input[type=number] { padding: 8px; font-size: 16px; width: 100%; margin: 10px 0; box-sizing: border-box; }
+        input[type=number], input[type=text] { padding: 8px; font-size: 16px; width: 100%; margin: 10px 0; box-sizing: border-box; }
         .days { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
         .days label { background: white; padding: 8px 14px; border-radius: 20px; cursor: pointer; border: 2px solid #ddd; }
         .days input:checked + span { color: #e05c00; font-weight: bold; }
@@ -14,14 +14,19 @@
         button:hover { background: #c44f00; }
         .week { background: white; padding: 20px; border-radius: 8px; margin-top: 20px; }
         .week h2 { color: #e05c00; margin-top: 0; }
-        .run-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+        .run-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; }
         .long-run { color: #e05c00; font-weight: bold; }
         .wed-run { color: #4a90d9; font-weight: bold; }
         .error { color: red; margin-top: 10px; }
         .export-btn { background: #2a9d8f; margin-left: 10px; }
         .export-btn:hover { background: #21867a; }
+        .new-plan-btn { background: #555; margin-top: 20px; }
+        .new-plan-btn:hover { background: #333; }
         .km-inputs { display: flex; gap: 20px; }
         .km-inputs div { flex: 1; }
+        .weather-badge { font-size: 12px; color: #888; margin-left: 10px; }
+        .weather-badge img { width: 20px; vertical-align: middle; }
+        .rain { color: #4a90d9; }
 
         @media print {
             body { margin: 20px; background: white; }
@@ -34,7 +39,7 @@
     <h1>🏃 4 Week Running Plan</h1>
 
     <div class="no-print">
-        <form method="POST">
+        <form method="POST" action="/">
             <div class="km-inputs">
                 <div>
                     <label>Week 1 kilometers:</label>
@@ -45,6 +50,9 @@
                     <input type="number" name="end_km" placeholder="e.g. 55" required>
                 </div>
             </div>
+
+            <label>Your city (for weather forecast):</label>
+            <input type="text" name="city" placeholder="e.g. London">
 
             <label>Rest days:</label>
             <div class="days">
@@ -68,10 +76,8 @@
     </div>
 
     {% if weeks %}
-        <button onclick="window.location.reload()" style="margin-top: 20px;">Create New Plan</button>
-        {% for week in weeks %}
+        <button class="new-plan-btn no-print" onclick="window.location.reload()">Create New Plan</button>
 
-    {% if weeks %}
         {% for week in weeks %}
         <div class="week">
             <h2>Week {{ week.week }} — {{ week.total_km }}km</h2>
@@ -79,6 +85,17 @@
             <div class="run-row {% if run.km >= 15 %}long-run{% elif run.day == 'Wed' %}wed-run{% endif %}">
                 <span>{{ run.day }}</span>
                 <span>{{ run.km }}km</span>
+                {% if week.week == 1 and weather %}
+                    {% set day_map = {"Mon": 0, "Tue": 1, "Wed": 2, "Thu": 3, "Fri": 4, "Sat": 5, "Sun": 6} %}
+                    {% for date, w in weather.items() %}
+                        {% if loop.index0 == day_map[run.day] %}
+                        <span class="weather-badge">
+                            <img src="http://openweathermap.org/img/wn/{{ w.icon }}.png">
+                            {{ w.temp }}°C · {{ w.description }} · <span class="rain">{{ w.rain }}% rain</span>
+                        </span>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
             </div>
             {% endfor %}
             <div class="run-row" style="font-weight:bold; margin-top:8px;">

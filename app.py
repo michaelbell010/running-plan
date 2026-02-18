@@ -1,6 +1,37 @@
 from flask import Flask, render_template, request
+from dotenv import load_dotenv
+import requests
+import os
+
+load_dotenv()
 
 app = Flask(__name__)
+
+WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
+
+def get_weather(city):
+    try:
+        url = f"http://api.openweathermap.org/data/2.5/forecast?q={city},uk&appid={WEATHER_API_KEY}&units=metric&cnt=56"
+        response = requests.get(url)
+        data = response.json()
+
+        if data.get("cod") != "200":
+            return None
+
+        daily = {}
+        for item in data["list"]:
+            date = item["dt_txt"].split(" ")[0]
+            if date not in daily:
+                daily[date] = {
+                    "temp": round(item["main"]["temp"]),
+                    "description": item["weather"][0]["description"].title(),
+                    "icon": item["weather"][0]["icon"],
+                    "rain": round(item.get("pop", 0) * 100)
+                }
+
+        return daily
+    except:
+        return None
 
 def create_plan(total_km, rest_days):
     day_order = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -25,7 +56,7 @@ def create_plan(total_km, rest_days):
                 long_run_day = preferred
                 break
 
-    fixed_km = (wed_km if has_wednesday else 0) + long_run
+    fixed_km = ((wed_km or 0) if has_wednesday else 0) + long_run
     remaining_km = total_km - fixed_km
     other_days = [d for d in days if d != "Wed" and d != long_run_day]
     num_other = len(other_days)
@@ -43,7 +74,7 @@ def create_plan(total_km, rest_days):
     plan = {}
     for i, day in enumerate(other_days):
         plan[day] = varied[i]
-    if has_wednesday:
+    if has_wednesday and wed_km:
         plan["Wed"] = wed_km
     plan[long_run_day] = long_run
 
@@ -56,11 +87,17 @@ def index():
     error = None
     start_km = None
     end_km = None
+    weather = None
+    city = None
 
     if request.method == "POST":
         start_km = float(request.form["start_km"])
         end_km = float(request.form["end_km"])
         rest_days = request.form.getlist("rest_days")
+        city = request.form.get("city", "").strip()
+
+        if city:
+            weather = get_weather(city)
 
         step = (end_km - start_km) / 3
         weekly_targets = [round(start_km + step * i, 1) for i in range(4)]
@@ -74,7 +111,7 @@ def index():
                 break
             weeks.append({"week": i + 1, "total_km": km, "runs": plan})
 
-    return render_template("index.html", weeks=weeks, error=error, start_km=start_km, end_km=end_km)
+    return render_template("index.html", weeks=weeks, error=error, start_km=start_km, end_km=end_km, weather=weather, city=city)
 
 if __name__ == "__main__":
     app.run(debug=True)
