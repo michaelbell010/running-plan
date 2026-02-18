@@ -68,6 +68,10 @@
     </div>
 
     {% if weeks %}
+        <button onclick="window.location.reload()" style="margin-top: 20px;">Create New Plan</button>
+        {% for week in weeks %}
+
+    {% if weeks %}
         {% for week in weeks %}
         <div class="week">
             <h2>Week {{ week.week }} — {{ week.total_km }}km</h2>
