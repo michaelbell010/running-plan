@@ -58,6 +58,9 @@ def create_plan(total_km, rest_days):
             if preferred in days and preferred != "Wed":
                 long_run_day = preferred
                 break
+    if has_wednesday and not wed_km:
+        days.remove("Wed")
+        has_wednesday = False
 
     fixed_km = ((wed_km or 0) if has_wednesday else 0) + long_run
     remaining_km = total_km - fixed_km
