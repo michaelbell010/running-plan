@@ -9,9 +9,9 @@ app = Flask(__name__)
 
 WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
 
-def get_weather(city):
+def get_weather(city, country="uk"):
     try:
-        url = f"http://api.openweathermap.org/data/2.5/forecast?q={city},uk&appid={WEATHER_API_KEY}&units=metric&cnt=56"
+        url = f"http://api.openweathermap.org/data/2.5/forecast?q={city},{country}&appid={WEATHER_API_KEY}&units=metric&cnt=56"
         response = requests.get(url)
         data = response.json()
 
@@ -101,9 +101,10 @@ def index():
         end_km = float(request.form["end_km"])
         rest_days = request.form.getlist("rest_days")
         city = request.form.get("city", "").strip()
+        country = request.form.get("country", "uk")
 
         if city:
-            weather = get_weather(city)
+            weather = get_weather(city, country)
 
         step = (end_km - start_km) / 3
         weekly_targets = [round(start_km + step * i, 1) for i in range(4)]
@@ -117,7 +118,7 @@ def index():
                 break
             weeks.append({"week": i + 1, "total_km": km, "runs": plan})
 
-    return render_template("index.html", weeks=weeks, error=error, start_km=start_km, end_km=end_km, weather=weather, city=city)
+    return render_template("index.html", weeks=weeks, error=error, start_km=start_km, end_km=end_km, weather=weather, city=city, country=request.form.get("country", "uk") if request.method == "POST" else "uk")
 
 if __name__ == "__main__":
     app.run(debug=True)
