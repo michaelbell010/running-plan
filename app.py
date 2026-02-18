@@ -10,10 +10,10 @@ def create_plan(total_km, rest_days):
         return None, "You need at least one running day!"
 
     has_wednesday = "Wed" in days
-    wed_km = 8.0
+    wed_km = 8.0 if total_km >= 25 else None
     long_run = round(min(20, max(15, total_km * 0.35)), 1)
 
-    min_possible = (wed_km if has_wednesday else 5) + (long_run if len(days) > 1 else 0) + (5 * max(0, len(days) - 2))
+    min_possible = ((wed_km or 1) if has_wednesday else 1) + (long_run if len(days) > 1 else 0) + (1 * max(0, len(days) - 2))
     if total_km < min_possible:
         return None, f"Total km is too low for {len(days)} days. You need at least {min_possible}km."
 
@@ -35,7 +35,7 @@ def create_plan(total_km, rest_days):
         base_offsets = [-1.5, -0.5, 0.5, 1.5, 1.0, -1.0, 0.0][:num_other]
         offset_avg = sum(base_offsets) / num_other
         normalized = [v - offset_avg for v in base_offsets]
-        varied = [round(max(5.0, avg + v), 1) for v in normalized]
+        varied = [round(max(1.0, avg + v), 1) for v in normalized]
         varied[-1] = round(remaining_km - sum(varied[:-1]), 1)
     else:
         varied = []
